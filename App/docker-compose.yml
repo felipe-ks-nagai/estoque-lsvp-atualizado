@@ -1,72 +1,49 @@
-version: '3.8'
-
 services:
-  # --- 1. Banco de Dados PostgreSQL ---
-  postgres:
+  db:
     image: postgres:15-alpine
-    container_name: lsvp-postgres  # <-- NOME ATUALIZADO
     environment:
-      POSTGRES_DB: estoque_lsvp
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: lsvp_secure_password_2025
-      # Configuração de locale pt-BR (muito importante para a ONG)
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=pt_BR.UTF-8 --lc-ctype=pt_BR.UTF-8"
+      POSTGRES_DB: ${POSTGRES_DB:-estoque_lsvp}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_password}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
-    networks:
-      - lsvp-network  # <-- REDE ATUALIZADA
-    restart: unless-stopped
+      - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d estoque_lsvp"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  # --- 2. Backend (Spring Boot) ---
   backend:
-    build: 
+    build:
       context: ./backend/InventoryManagement
       dockerfile: Dockerfile
-    container_name: lsvp-backend  # <-- NOME ATUALIZADO
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      # Conexão com o banco
-      SPRING_DATASOURCE_URL: jdbc:postgresql://lsvp-postgres:5432/estoque_lsvp
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: lsvp_secure_password_2025
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-estoque_lsvp}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_password}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
       SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update 
-      JAVA_TOOL_OPTIONS: "-Xmx350m -Xms350m"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
-    networks:
-      - lsvp-network
     restart: unless-stopped
 
-  # --- 3. Frontend (Angular + Nginx) ---
   frontend:
-    build: 
+    build:
       context: ./frontend/Estoque_WebApp
       dockerfile: Dockerfile
-    container_name: lsvp-frontend  # <-- NOME ATUALIZADO
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
       - backend
-    networks:
-      - lsvp-network
     restart: unless-stopped
-
-networks:
-  lsvp-network:  # <-- REDE DEFINIDA AQUI
-    driver: bridge
 
 volumes:
   postgres-data:
-    driver: local

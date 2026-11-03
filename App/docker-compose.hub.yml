@@ -1,0 +1,8 @@
+# Usar junto com docker-compose.yml e subir com --no-build.
+services:
+  db:
+    image: felipenagai/estoque-lsvp-db:${IMAGE_TAG:-latest}
+  backend:
+    image: felipenagai/estoque-lsvp-backend:${IMAGE_TAG:-latest}
+  frontend:
+    image: felipenagai/estoque-lsvp-frontend:${IMAGE_TAG:-latest}

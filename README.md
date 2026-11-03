@@ -158,6 +158,70 @@ O sistema permite múltiplas unidades do mesmo produto, cada uma com validade e 
 
 ##  Como Executar o Projeto
 
+### 🔹 Com Docker Compose
+
+Com Docker e o plugin Docker Compose instalados, execute na raiz do repositório:
+
+```bash
+cd App
+docker compose up --build
+```
+
+O frontend ficará disponível em `http://localhost` e a API em `http://localhost:8080`.
+O PostgreSQL fica disponível na porta `5432`, e os dados são mantidos no volume
+`postgres-data`.
+
+As portas e credenciais podem ser personalizadas pelas variáveis
+`FRONTEND_PORT`, `BACKEND_PORT`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`
+e `POSTGRES_PASSWORD`. Os valores padrão são voltados somente para desenvolvimento
+local; defina credenciais próprias antes de usar em qualquer ambiente compartilhado.
+
+### 🔹 Publicar no Docker Hub
+
+O workflow `.github/workflows/dockerhub.yml` compila e publica três imagens
+para `linux/amd64`:
+
+| Serviço | Imagem |
+| --- | --- |
+| Banco PostgreSQL 15 | `felipenagai/estoque-lsvp-db` |
+| Backend Spring Boot | `felipenagai/estoque-lsvp-backend` |
+| Frontend Angular + Nginx | `felipenagai/estoque-lsvp-frontend` |
+
+Na conta `felipenagai` do Docker Hub, prepare os três repositórios acima com a
+visibilidade desejada e crie um [token de acesso pessoal](https://docs.docker.com/security/access-tokens/)
+com permissão de leitura e escrita. No repositório do GitHub, acesse
+**Settings → Secrets and variables → Actions → New repository secret** e salve
+esse token como `DOCKERHUB_TOKEN`. O usuário `felipenagai` já está definido no workflow.
+
+Depois de enviar os arquivos ao GitHub:
+
+- Push na `main` com alterações em `App/` ou no workflow publica `latest`, `main`
+  e `sha-<SHA completo do commit>`.
+- Push de uma tag `v*`, como `v1.0.0`, publica essa tag e a tag do commit,
+  sem substituir `latest`.
+- **Actions → Publicar imagens no Docker Hub → Run workflow** permite publicar
+  manualmente a referência selecionada. Apenas a branch padrão atualiza `latest`.
+- Pull requests para `main` nos mesmos caminhos apenas validam a compilação;
+  não fazem login nem publicam imagens.
+
+A imagem do banco contém o PostgreSQL, sem copiar dados ou senhas locais.
+O banco é inicializado pelas variáveis `POSTGRES_*`, e seus dados permanecem no
+volume `postgres-data`. A imagem não substitui um backup do banco.
+
+Para usar as imagens publicadas, execute na pasta `App`:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.hub.yml pull
+docker compose -f docker-compose.yml -f docker-compose.hub.yml up -d --no-build
+```
+
+O arquivo `docker-compose.hub.yml` complementa o Compose local, mantendo a rede,
+as portas e o volume. Por padrão usa `latest`; defina `IMAGE_TAG=v1.0.0` no ambiente
+ou no arquivo `App/.env` para usar a mesma versão nos três serviços. Configure
+também `POSTGRES_PASSWORD` nesse ambiente; para um volume existente, mantenha a
+senha já configurada no banco. Se as imagens forem privadas, execute `docker login`
+antes do `pull`.
+
 ### 🔹 Pré-requisitos
 
 - Java JDK 17+
@@ -217,6 +281,5 @@ Frontend disponível em:
 Projeto acadêmico sem licença específica.
 
 Este repositório foi desenvolvido como atividade acadêmica na FATEC e, no momento, não possui uma licença de código aberto aplicada. Os autores não concederam autorização explícita para reutilização, modificação ou distribuição; portanto, considere que todos os direitos estão reservados aos autores até que uma licença seja adicionada.
-
 
 
