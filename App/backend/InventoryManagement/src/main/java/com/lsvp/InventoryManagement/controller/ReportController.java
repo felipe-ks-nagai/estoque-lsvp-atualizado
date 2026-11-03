@@ -35,7 +35,7 @@ public class ReportController {
      * Retorna lotes em estoque próximos de vencer, de forma paginada.
      */
     @GetMapping("/expiring-lots")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<ExpiringLotDTO>> getExpiringLots(
             @RequestParam(defaultValue = "30") int daysUntilExpiry,
             @RequestParam(defaultValue = "1") int page,
@@ -50,7 +50,7 @@ public class ReportController {
      * Retorna valor total gasto (em centavos) em compras em um determinado mês/ano.
      */
     @GetMapping("/total-spent")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TotalSpentDTO> getTotalSpent(
             @RequestParam int month,
             @RequestParam int year
@@ -64,7 +64,7 @@ public class ReportController {
      * Retorna preço médio ponderado por categoria, mensal.
      */
     @GetMapping("/average-price")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<AveragePriceDTO>> getAveragePrice(
             @RequestParam Long categoryId,
             @RequestParam int startMonth,
@@ -82,7 +82,7 @@ public class ReportController {
      * (Alternativa ao "Estoque Médio")
      */
     @GetMapping("/stock-flow")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<MonthlyStockFlowDTO>> getStockFlow(
             @RequestParam Long categoryId,
             @RequestParam int startMonth,
@@ -100,7 +100,7 @@ public class ReportController {
      * Retorna a quantidade total de itens físicos armazenados no estoque principal.
      */
     @GetMapping("/stock-total")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TotalStockDTO> getTotalStock() {
         TotalStockDTO result = reportService.getTotalStockInStorage();
         return ResponseEntity.ok(result);
@@ -111,7 +111,7 @@ public class ReportController {
      * Retorna a quantidade total de itens que vão vencer nos próximos X dias.
      */
     @GetMapping("/expiring-total")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ExpiringProductsTotalDTO> getTotalExpiring(
             @RequestParam(defaultValue = "30") int days
     ) {
@@ -124,7 +124,7 @@ public class ReportController {
      * Retorna a quantidade total de uma categoria (Estoque + Cozinha).
      */
     @GetMapping("/category-total")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<CategoryTotalStockDTO> getCategoryTotalStock(
             @RequestParam Long categoryId
     ) {

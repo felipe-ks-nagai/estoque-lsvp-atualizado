@@ -20,7 +20,6 @@ import { EditContainerComponent } from './pages/container/edit-container/edit-co
 import { CreateCategoryComponent } from './pages/category/create-category/create-category.component';
 import { ViewCategoriesComponent } from './pages/category/view-categories/view-categories.component';
 import { EditCategoryComponent } from './pages/category/edit-category/edit-category.component';
-import { adminGuard } from './core/guards/admin.guard';
 import { MovementInputComponent } from './pages/movements/movement-input/movement-input.component';
 import { ScannerInputComponent } from './pages/movements/scanner-input/scanner-input.component';
 import { CookDashboardComponent } from './pages/cook-dashboard/cook-dashboard.component';
@@ -36,7 +35,7 @@ import { ReportComponent } from './pages/report/report.component';
 import { ExpiredUnitViewComponent } from './pages/expired-unit-view/expired-unit-view.component';
 
 export const routes: Routes = [
-    //[adminGuard] Permite Somente o Acesso a Administradores dessas Funcionalidades
+    //[authGuard] também protege as rotas de usuários: qualquer usuário logado tem acesso
     //[authGuard] protege as rotas que precisam de autenticação
     //[loginGuard] protege as rotas que não devem ser acessadas se o usuário já estiver logado
    //{ path: 'teste', component: UnitInputComponent }, // }, //rota de login
@@ -56,9 +55,9 @@ export const routes: Routes = [
         children: [
             {path: '', redirectTo: 'view', pathMatch: 'full'},
 
-            {path: 'view/users', component: UsersViewComponent, pathMatch: 'full', canActivate: [adminGuard] },
-            {path: 'create/user', component: CreateUserComponent, pathMatch: 'full', canActivate: [adminGuard] },
-            {path: 'edit/user/:id', component: EditUserComponent, pathMatch: 'full', canActivate: [adminGuard] },
+            {path: 'view/users', component: UsersViewComponent, pathMatch: 'full', canActivate: [authGuard] },
+            {path: 'create/user', component: CreateUserComponent, pathMatch: 'full', canActivate: [authGuard] },
+            {path: 'edit/user/:id', component: EditUserComponent, pathMatch: 'full', canActivate: [authGuard] },
             {path: 'view', component: ManageViewComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
             {path: 'view/users', component: UsersViewComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
             {path: 'create/user', component: CreateUserComponent, pathMatch: 'full', /*canActivate:[adminGuard]},*/ },

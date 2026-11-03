@@ -24,7 +24,7 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<CategoryDTO> createCategory (@Valid @RequestBody CategoryCreateDTO dto)
     {
         return ResponseEntity.ok(categoryService.createCategory(dto));
@@ -55,14 +55,14 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, CategoryUpdateDTO dto)
     {
         return ResponseEntity.ok(categoryService.updateCategory(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id)
     {
         categoryService.deleteCategory(id);

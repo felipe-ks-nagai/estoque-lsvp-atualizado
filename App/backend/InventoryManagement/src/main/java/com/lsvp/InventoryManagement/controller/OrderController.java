@@ -36,21 +36,21 @@ public class OrderController {
     private OrderService orderService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'COZINHEIRO', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<OrderDTO> createOrder(@Valid @RequestBody OrderCreateDTO dto) {
 
         return ResponseEntity.ok(orderService.createOrder(dto));
     }
 
     @PostMapping("/{id}/fulfill")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> fulfillOrder(@PathVariable Long id, @Valid @RequestBody FulfillmentRequestDTO dto) {
         orderService.fulfillOrder(id, dto);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<OrderDTO>> getPendingOrders(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit) {
@@ -59,7 +59,7 @@ public class OrderController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA', 'COZINHEIRO')") 
+    @PreAuthorize("isAuthenticated()") 
     public ResponseEntity<Page<OrderDTO>> getAllOrders(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,
@@ -72,7 +72,7 @@ public class OrderController {
 
     @Operation(summary = "Obter sugestões de atendimento", description = "Retorna quais unidades usar baseando-se na validade (FEFO)")
     @GetMapping("/{id}/fulfillment-suggestions")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<FulfillmentSuggestionDTO>> getFulfillmentSuggestions(@PathVariable Long id) {
         List<FulfillmentSuggestionDTO> suggestions = orderService.getFulfillmentSuggestions(id);
         return ResponseEntity.ok(suggestions);

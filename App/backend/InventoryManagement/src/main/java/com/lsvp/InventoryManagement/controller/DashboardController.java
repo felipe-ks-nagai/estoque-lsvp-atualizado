@@ -22,7 +22,7 @@ public class DashboardController {
 
 
     @GetMapping("/kitchen/product-count")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'COZINHEIRO', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<KitchenProductCountDTO> getKitchenProductCount() {
         return ResponseEntity.ok(dashboardService.getKitchenProductCount());
     }

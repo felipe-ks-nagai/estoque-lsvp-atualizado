@@ -34,7 +34,7 @@ public class ProductController {
     private StockReportService stockReportService;
 
         @PostMapping
-        @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+        @PreAuthorize("isAuthenticated()")
         public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody ProductCreateDTO dto){
 
             return ResponseEntity.ok(productService.createProduct(dto));
@@ -63,14 +63,14 @@ public class ProductController {
         }
 
         @PutMapping("/{id}")
-        @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+        @PreAuthorize("isAuthenticated()")
         public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductUpdateDTO dto){
 
             return ResponseEntity.ok(productService.updateProduct(id, dto));
         }
 
         @DeleteMapping("/{id}")
-        @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+        @PreAuthorize("isAuthenticated()")
         public ResponseEntity<Void> deleteProduct(@PathVariable Long id){
 
             productService.deleteProduct(id);

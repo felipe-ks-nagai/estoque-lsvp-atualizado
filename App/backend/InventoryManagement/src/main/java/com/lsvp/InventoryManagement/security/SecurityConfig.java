@@ -5,6 +5,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -33,12 +36,22 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
+                // Permite que o console do H2 seja exibido (ele usa frames)
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Sem login (ou com token inválido/expirado) responde 401 em vez de 403,
+                // para o interceptor do frontend tentar o refresh e, se falhar, voltar ao login
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
 //            Parte que chama autenticação comentada durante desenvolvimento
                  .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                 // Libera a página de erro do Spring: sem isso, qualquer erro interno (500)
+                 // aparece para o frontend como 401/403 e esconde o erro real
+                 .requestMatchers("/error").permitAll()
+                 // Console do H2 liberado sem login (só existe quando spring.h2.console.enabled=true)
+                 .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
 //                        .requestMatchers(HttpMethod.POST, "/api/user").permitAll()
-                 .requestMatchers("/api/user/**").hasRole("ADMINISTRADOR")
+                 // Qualquer usuário logado pode acessar /api/user/** (antes era só ADMINISTRADOR)
                  .anyRequest().authenticated()
                 )
                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

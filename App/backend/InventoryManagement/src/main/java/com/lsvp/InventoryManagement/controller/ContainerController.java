@@ -26,7 +26,7 @@ public class ContainerController {
 
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ContainerDTO> createContainer(@Valid @RequestBody ContainerCreateDTO dto){
         return ResponseEntity.ok(containerService.createContainer(dto));
     }
@@ -49,13 +49,13 @@ public class ContainerController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ContainerDTO> updateContainer(@PathVariable Long id, @Valid @RequestBody ContainerUpdateDTO dto){
         return ResponseEntity.ok(containerService.updateContainer(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteContainer(@PathVariable Long id){
 
         containerService.deleteContainer(id);

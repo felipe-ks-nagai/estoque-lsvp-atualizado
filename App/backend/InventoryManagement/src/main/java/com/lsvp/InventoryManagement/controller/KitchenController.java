@@ -23,7 +23,7 @@ public class KitchenController {
     @Autowired
     private KitchenService kitchenService;
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'COZINHEIRO', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/units")
     public ResponseEntity<Page<KitchenUnitDTO>> getKitchenUnits(
             @RequestParam(defaultValue = "1") int page,
@@ -32,7 +32,7 @@ public class KitchenController {
         return ResponseEntity.ok(result);
     }
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'COZINHEIRO', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/units/expiring-soon")
     public ResponseEntity<Page<KitchenUnitDTO>> getExpiringSoonUnits(
             @RequestParam(defaultValue = "7") int thresholdDays,

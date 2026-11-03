@@ -28,7 +28,7 @@ public class UnitController {
     // }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'COZINHEIRO', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<UnitDTO>> getAllUnits(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,
@@ -41,26 +41,26 @@ public class UnitController {
     }
     
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UnitDTO> getUnitById(@PathVariable Long id){
         return ResponseEntity.ok(unitService.getUnitById(id));
     }
 
     @GetMapping("/batch/{batch}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UnitDTO> getUnitByBatch(@PathVariable String batch){
         return ResponseEntity.ok(unitService.getUnitByBatch(batch));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UnitDTO> updateUnit(@PathVariable Long id, @Valid @RequestBody UnitUpdateDTO dto){
 
         return ResponseEntity.ok(unitService.updateUnit(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteUnit(@PathVariable Long id){
 
         unitService.deleteUnit(id);
@@ -69,7 +69,7 @@ public class UnitController {
     }
 
     @GetMapping("/expired")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')") // Se quiser proteger
+    @PreAuthorize("isAuthenticated()") // Se quiser proteger
     public ResponseEntity<Page<UnitDTO>> getExpiredUnits(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,

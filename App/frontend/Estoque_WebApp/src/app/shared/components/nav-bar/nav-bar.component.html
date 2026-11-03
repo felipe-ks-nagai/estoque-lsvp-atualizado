@@ -6,7 +6,7 @@
   </div>
   
   <ul class="nav-menu-new">
-    <li *ngIf="getRole() !== 'COZINHEIRO'" class="nav-item-new"  [class.active-new]="isActive('home')">
+    <li class="nav-item-new"  [class.active-new]="isActive('home')">
       <a href="dashboard/stock" (click)="setActiveByRoute('home')" class="nav-link-new">
         <fa-icon [icon]="icons.faHome" class="nav-icon-new"></fa-icon>
         <span>Home</span>
@@ -20,7 +20,7 @@
     </li>
    
     
-    <li *ngIf="getRole() !== 'COZINHEIRO'" class="nav-item-new" [class.active-new]="isActive('gestao')">
+    <li class="nav-item-new" [class.active-new]="isActive('gestao')">
       <div class="nav-link-new" style="cursor: pointer;">
         <fa-icon [icon]="icons.faBuilding" class="nav-icon-new"></fa-icon>
         <app-dropdown 
@@ -51,7 +51,7 @@
       </div>
     </li>
     
-    <li *ngIf="getRole() !== 'COZINHEIRO'" class="nav-item-new" [class.active-new]="isActive('movimentacoes')">
+    <li class="nav-item-new" [class.active-new]="isActive('movimentacoes')">
       <a href="manage/view/movements" (click)="setActiveByRoute('movimentacoes')" class="nav-link-new">
         <fa-icon [icon]="icons.faArrowsTurnToDots" class="nav-icon-new"></fa-icon>
         <span>Movimentações</span>
@@ -59,7 +59,7 @@
     </li>
 
     
-    <li *ngIf="getRole() ===  'ADMINISTRADOR'" class="nav-item-new" [class.active-new]="isActive('usuarios')">
+    <li class="nav-item-new" [class.active-new]="isActive('usuarios')">
       <a href="manage/view/users" (click)="setActiveByRoute('usuarios')" class="nav-link-new">
         <fa-icon [icon]="icons.faList" class="nav-icon-new"></fa-icon>
         <span>Usuários</span>
@@ -67,7 +67,7 @@
     </li>
    
   
-    <li *ngIf="getRole() !== 'COZINHEIRO'" class="nav-item-new" [class.active-new]="isActive('relatorios')">
+    <li class="nav-item-new" [class.active-new]="isActive('relatorios')">
       <a href="reports" (click)="setActiveByRoute('relatorios')" class="nav-link-new">
         <fa-icon [icon]="icons.faChartLine" class="nav-icon-new"></fa-icon>
         <span>Relatórios</span>

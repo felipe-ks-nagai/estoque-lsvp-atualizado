@@ -40,25 +40,25 @@ public class MovementController {
     private MovementService movementService;
 
     @PostMapping("/inputs")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
         public ResponseEntity<MovementDTO> createInput(@Valid @RequestBody InputCreateDTO dto){
             return ResponseEntity.ok(movementService.createInput(dto));
         }
     
     @PostMapping("/outputs")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
         public ResponseEntity<MovementDTO> createOutput(@Valid @RequestBody OutputCreateDTO dto){
             return ResponseEntity.ok(movementService.createOutput(dto));
         }
 
     @PostMapping("/transfers")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
         public ResponseEntity<MovementDTO> createTransfer(@Valid @RequestBody TransferCreateDTO dto){
             return ResponseEntity.ok(movementService.createTransfer(dto));
         }
 
     @PostMapping("/consumption")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'COZINHEIRO', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<MovementDTO> createConsumption(@Valid @RequestBody ConsumptionCreateDTO dto) {
         MovementDTO movement = movementService.createConsumption(dto);
         return ResponseEntity.ok(movement);
@@ -66,7 +66,7 @@ public class MovementController {
 
 
     @PostMapping("/adjustments/output")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<MovementDTO> createOutputAdjustment(@Valid @RequestBody StockAdjustmentDTO dto) {
         MovementDTO movement = movementService.createOutputAdjustment(dto);
         return ResponseEntity.ok(movement);
@@ -74,7 +74,7 @@ public class MovementController {
 
     
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
         public ResponseEntity<Page<MovementDTO>> getAllMovements(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,
@@ -85,7 +85,7 @@ public class MovementController {
         }
 
     @GetMapping("/inputs")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<MovementDTO>> getInputs(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,
@@ -97,7 +97,7 @@ public class MovementController {
     }
 
     @GetMapping("/outputs")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<MovementDTO>> getOutputs(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,
@@ -109,7 +109,7 @@ public class MovementController {
     }
 
     @GetMapping("/adjustments/output")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<MovementDTO>> getOutputAdjustments(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,
@@ -120,7 +120,7 @@ public class MovementController {
     }
 
     @GetMapping("/transfers")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESTOQUISTA')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<MovementDTO>> getTransfers(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,
