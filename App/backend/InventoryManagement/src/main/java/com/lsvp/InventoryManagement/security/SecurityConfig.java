@@ -28,6 +28,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    // Nomes das roles (iguais ao enum Role). O Spring adiciona o prefixo "ROLE_" sozinho.
+    private static final String ADMIN = "ADMINISTRADOR";
+    private static final String ESTOQUE = "ESTOQUISTA";
+    private static final String COZINHA = "COZINHEIRO";
+
     @Autowired
     private JwtAuthFilter jwtFilter;
 
@@ -50,9 +55,38 @@ public class SecurityConfig {
                  .requestMatchers("/error").permitAll()
                  // Console do H2 liberado sem login (só existe quando spring.h2.console.enabled=true)
                  .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
-//                        .requestMatchers(HttpMethod.POST, "/api/user").permitAll()
-                 // Qualquer usuário logado pode acessar /api/user/** (antes era só ADMINISTRADOR)
-                 .anyRequest().authenticated()
+
+                 // ================= PERMISSÕES POR ROLE =================
+                 // A ordem importa: o Spring usa a PRIMEIRA regra que bater com a URL.
+
+                 // Qualquer usuário logado pode buscar os PRÓPRIOS dados (checagem fina no UserController)
+                 .requestMatchers(HttpMethod.GET, "/api/user/n/**").authenticated()
+                 // Resto de usuários: só ADMINISTRADOR
+                 .requestMatchers("/api/user/**").hasRole(ADMIN)
+
+                 // ---- TODOS os logados: tela HOME e tela RELATÓRIOS ----
+                 // Home usa /api/reports/* (cards) e a lista das últimas movimentações;
+                 // Relatórios usa /api/reports/pdf/*
+                 .requestMatchers(HttpMethod.GET, "/api/reports/**").authenticated()
+                 .requestMatchers(HttpMethod.GET, "/api/movement").authenticated()
+
+                 // ---- Compartilhado entre ESTOQUE e COZINHA ----
+                 // Transferência de lote (gestão de unidades e cozinha usam)
+                 .requestMatchers(HttpMethod.POST, "/api/movement/transfers").hasAnyRole(ADMIN, ESTOQUE, COZINHA)
+                 // Leitura de contêineres e categorias (usadas nos formulários da cozinha)
+                 .requestMatchers(HttpMethod.GET, "/api/container/**", "/api/category/**").hasAnyRole(ADMIN, ESTOQUE, COZINHA)
+
+                 // ---- COZINHA (Gestão Cozinha) ----
+                 .requestMatchers(HttpMethod.POST, "/api/movement/consumption").hasAnyRole(ADMIN, COZINHA)
+                 .requestMatchers("/api/kitchen/**", "/api/orders/**", "/api/dashboard/**").hasAnyRole(ADMIN, COZINHA)
+
+                 // ---- ESTOQUE (Gestão + Movimentações) ----
+                 .requestMatchers("/api/product/**", "/api/category/**", "/api/container/**",
+                                  "/api/unit/**", "/api/movement/**").hasAnyRole(ADMIN, ESTOQUE)
+
+                 // ---- Todo o resto (usuários, etc.): só ADMINISTRADOR ----
+                 // "Negado por padrão": rota nova sem regra fica bloqueada para quem não é admin
+                 .anyRequest().hasRole(ADMIN)
                 )
                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

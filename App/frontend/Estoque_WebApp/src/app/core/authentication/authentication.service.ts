@@ -4,6 +4,13 @@ import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
 import { throwError, Observable, tap } from 'rxjs'; 
 import { FormGroup } from '@angular/forms';
+// Roles do sistema (iguais ao enum Role do backend)
+export const ROLES = {
+  ADMIN: 'ADMINISTRADOR',
+  ESTOQUE: 'ESTOQUISTA',
+  COZINHA: 'COZINHEIRO',
+} as const;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -90,9 +97,17 @@ export class AuthenticationService {
     return payload.sub || '';
   }
   getUserRole(): string {
-    const token = this.getToken();
-      if (!token) return '';
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.role || '';
+    return this.decodeToken()?.role || '';
+  }
+
+  // Verifica se o usuário logado tem uma das roles informadas (ADMINISTRADOR sempre passa)
+  hasRole(...roles: string[]): boolean {
+    const role = this.getUserRole();
+    return role === ROLES.ADMIN || roles.includes(role);
+  }
+
+  // Página inicial (usada após o login e quando o acesso é negado): a Home é de todos
+  getHomeRoute(): string {
+    return this.isAuthenticated() ? '/dashboard/stock' : '/login';
   }
 }

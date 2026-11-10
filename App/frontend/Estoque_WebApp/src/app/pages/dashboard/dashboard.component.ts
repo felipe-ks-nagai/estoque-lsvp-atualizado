@@ -16,6 +16,7 @@ import { ExpiringBatchs } from '../../shared/models/expiring-batchs';
 import { Movement } from '../../shared/models/movement';
 import { MovementService } from '../../core/services/movement.service';
 import { ModalModule } from './../../shared/modules/modal/modal.module';
+import { AuthenticationService, ROLES } from '../../core/authentication/authentication.service';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -33,13 +34,17 @@ export class DashboardComponent implements OnInit {
   lastMovements: Partial<Movement>[] = []
   expiredCount: number = 0;
   @ViewChild('expiredModal') expiredModal!: ModalComponent;
+  podeEstoque = false; // atalhos de Gestão/Movimentações e aviso de vencidos
 
   constructor(
     private router: Router,
     private dashboardService: DashboardService,
     private movementService: MovementService,
-    private unitService: UnitService
-  ) {}
+    private unitService: UnitService,
+    private auth: AuthenticationService
+  ) {
+    this.podeEstoque = this.auth.hasRole(ROLES.ESTOQUE);
+  }
   
   ngOnInit(): void {
     let date = new Date();
@@ -48,7 +53,7 @@ export class DashboardComponent implements OnInit {
     this.totalStock();
     this.getExpiringBatchs(7, 0,10);
     this.getLastMovements(1, 10);
-    this.checkExpiredUnits();
+    if (this.podeEstoque) this.checkExpiredUnits(); // cozinha não gerencia unidades vencidas
 
   }
 

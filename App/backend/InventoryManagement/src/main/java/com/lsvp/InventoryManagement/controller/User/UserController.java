@@ -1,5 +1,7 @@
 package com.lsvp.InventoryManagement.controller.User;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import com.lsvp.InventoryManagement.dto.User.UserUpdateDTO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -55,6 +57,8 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
+    // Admin busca qualquer um; os demais só podem buscar a si mesmos
+    @PreAuthorize("hasRole('ADMINISTRADOR') or #name == authentication.name")
     @GetMapping("/n/{name}")
     public ResponseEntity<UserDTO> getUserByName(@PathVariable String name){
         return ResponseEntity.ok(userService.getUserByName(name));

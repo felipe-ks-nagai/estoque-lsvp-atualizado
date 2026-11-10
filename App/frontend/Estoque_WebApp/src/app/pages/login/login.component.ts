@@ -46,7 +46,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
       //se o login for bem-sucedido, armazena o token e redireciona para a página inicial
       next: (res: any) => {
         this.auth.setToken(res.token);
-        this.router.navigate(['/']);
+        this.router.navigate([this.auth.getHomeRoute()]); // vai para a página inicial da role
       },
       //se o login falhar, exibe a mensagem de erro
       error: (error) => {

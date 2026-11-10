@@ -220,7 +220,7 @@ export class KitchenOrderComponent implements OnInit {
         this.showModal('Pedido realizado com sucesso! Enviado para a cozinha.');
         
         setTimeout(() => {
-            this.router.navigate(['/dashboard/cook']);
+            this.router.navigate([this.auth.getHomeRoute()]); // dashboard/cook agora é só admin
         }, 1500);
       },
       error: (err) => {

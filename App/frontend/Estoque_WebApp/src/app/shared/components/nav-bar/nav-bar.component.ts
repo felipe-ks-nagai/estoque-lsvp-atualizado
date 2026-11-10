@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { IconModule, icons } from '../../modules/icon/icon.module';
-import { AuthenticationService } from '../../../core/authentication/authentication.service';
+import { AuthenticationService, ROLES } from '../../../core/authentication/authentication.service';
 import { filter } from 'rxjs';
 import { DropdownComponent } from '../dropdown/dropdown.component';
 @Component({
@@ -21,6 +21,11 @@ import { DropdownComponent } from '../dropdown/dropdown.component';
 export class NavBarComponent {
 
   userName: string = 'Bem vindo, ';
+
+  // Permissões usadas no template para mostrar/esconder as abas
+  isAdmin = false;
+  podeEstoque = false;  // Gestão + Movimentações
+  podeCozinha = false;  // Gestão Cozinha
   
   constructor(private auth: AuthenticationService, private router: Router) {
     this.router.events
@@ -29,6 +34,9 @@ export class NavBarComponent {
         this.setActiveByRoute(event.urlAfterRedirects);
       });
     this.userName += this.auth.getUserName();
+    this.isAdmin = this.auth.hasRole();
+    this.podeEstoque = this.auth.hasRole(ROLES.ESTOQUE);
+    this.podeCozinha = this.auth.hasRole(ROLES.COZINHA);
   }
   // 'icons' é o objeto que contém todos os ícones importados do módulo
   icons = icons;

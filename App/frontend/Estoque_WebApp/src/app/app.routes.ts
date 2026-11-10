@@ -3,6 +3,9 @@ import { LoginComponent } from './pages/login/login.component';
 import { ManageLayoutComponent } from './shared/layouts/manage-layout/manage-layout.component';
 import { authGuard } from './core/guards/auth.guard';
 import { loginGuard } from './core/guards/login.guard';
+import { roleGuard } from './core/guards/role.guard';
+import { inject } from '@angular/core';
+import { AuthenticationService, ROLES } from './core/authentication/authentication.service';
 import { UsersViewComponent } from './pages/user/users-view/users-view.component';
 import { ManageViewComponent } from './pages/manage-view/manage-view.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
@@ -14,7 +17,6 @@ import { CreateProductsComponent } from './pages/products/create-products/create
 import { CreateContainerComponent } from './pages/container/create-container/create-container.component';
 import { ViewContainersComponent } from './pages/container/view-containers/view-containers.component';
 import { The404PageComponent } from './shared/components/the404-page/the404-page.component';
-import { TesteComponent } from './teste/teste.component';
 //import { UnitInputComponent } from './pages/unit/unit-input/unit-input.component';
 import { EditContainerComponent } from './pages/container/edit-container/edit-container.component';
 import { CreateCategoryComponent } from './pages/category/create-category/create-category.component';
@@ -34,62 +36,66 @@ import { FinishOrderComponent } from './pages/request/finish-order/finish-order.
 import { ReportComponent } from './pages/report/report.component';
 import { ExpiredUnitViewComponent } from './pages/expired-unit-view/expired-unit-view.component';
 
+// Atalhos de permissão (ADMINISTRADOR passa em todos)
+const todos        = [roleGuard(ROLES.ESTOQUE, ROLES.COZINHA)]; // qualquer usuário logado
+const somenteAdmin = [roleGuard()];
+const estoque      = [roleGuard(ROLES.ESTOQUE)];   // aba Gestão + Movimentações
+const cozinha      = [roleGuard(ROLES.COZINHA)];   // aba Gestão Cozinha
+
 export const routes: Routes = [
-    //[authGuard] também protege as rotas de usuários: qualquer usuário logado tem acesso
-    //[authGuard] protege as rotas que precisam de autenticação
-    //[loginGuard] protege as rotas que não devem ser acessadas se o usuário já estiver logado
-   //{ path: 'teste', component: UnitInputComponent }, // }, //rota de login
-   { path: 'login', component: LoginComponent }, // }, //rota de login
-   {path: '', redirectTo: 'dashboard/stock', pathMatch: 'full', /*canActivate:[loginGuard]*/ }, //rota padrão redireciona para o dashboard
-   {path: 'dashboard/stock', component: DashboardComponent, pathMatch: 'full', canActivate:[authGuard] }, // }, //rota do dashboard
-   {path: 'dashboard/cook', component: CookDashboardComponent, pathMatch: 'full', canActivate:[authGuard] },
-   {path: 'kitchen/request', component: KitchenOrderComponent, pathMatch: 'full' },
-   {path: 'kitchen/pending', component: PedingOrdersComponent, pathMatch: 'full' },
-   {path: 'kitchen/units/view', component: ViewKitchenUnitsComponent, pathMatch: 'full', canActivate:[authGuard] },
-   {path: 'fulfill/order/:id', component: FinishOrderComponent, pathMatch: 'full' },
-    {path: 'reports', component:ReportComponent, pathMatch:'full'},
-    {path: 'expired-units', component: ExpiredUnitViewComponent, pathMatch: 'full', canActivate:[authGuard] },
-   //rotas de gerenciamento 
+   { path: 'login', component: LoginComponent },
+
+   // Rota padrão: manda cada usuário para a página inicial da sua role
+   { path: '', pathMatch: 'full', redirectTo: () => inject(AuthenticationService).getHomeRoute() },
+
+   // ---- TODOS: Home e Relatórios ----
+   { path: 'dashboard/stock', component: DashboardComponent, canActivate: todos },
+   { path: 'reports', component: ReportComponent, canActivate: todos },
+
+   // Unidades vencidas (aberta pelo aviso da Home) é gestão de estoque
+   { path: 'expired-units', component: ExpiredUnitViewComponent, canActivate: estoque },
+
+   // ---- COZINHA: Dashboard Cozinha + Gestão Cozinha ----
+   { path: 'dashboard/cook', component: CookDashboardComponent, canActivate: cozinha },
+   { path: 'kitchen/units/view', component: ViewKitchenUnitsComponent, canActivate: cozinha },
+   { path: 'kitchen/request', component: KitchenOrderComponent, canActivate: cozinha },
+   { path: 'kitchen/pending', component: PedingOrdersComponent, canActivate: cozinha },
+   { path: 'fulfill/order/:id', component: FinishOrderComponent, canActivate: cozinha },
+
+   // ---- Rotas de gerenciamento ----
    { path: 'manage', component: ManageLayoutComponent,
-    //filhos da rota de gerenciamento
         children: [
-            {path: '', redirectTo: 'view', pathMatch: 'full'},
+            { path: '', redirectTo: 'view', pathMatch: 'full' },
+            { path: 'view', component: ManageViewComponent, canActivate: somenteAdmin },
 
-            {path: 'view/users', component: UsersViewComponent, pathMatch: 'full', canActivate: [authGuard] },
-            {path: 'create/user', component: CreateUserComponent, pathMatch: 'full', canActivate: [authGuard] },
-            {path: 'edit/user/:id', component: EditUserComponent, pathMatch: 'full', canActivate: [authGuard] },
-            {path: 'view', component: ManageViewComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
-            {path: 'view/users', component: UsersViewComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
-            {path: 'create/user', component: CreateUserComponent, pathMatch: 'full', /*canActivate:[adminGuard]},*/ },
-            {path: 'edit/user/:id', component: EditUserComponent, pathMatch: 'full', /*canActivate:[adminGuard]},*/ },
+            // Usuários (ADMINISTRADOR)
+            { path: 'view/users', component: UsersViewComponent, canActivate: somenteAdmin },
+            { path: 'create/user', component: CreateUserComponent, canActivate: somenteAdmin },
+            { path: 'edit/user/:id', component: EditUserComponent, canActivate: somenteAdmin },
 
-            {path: 'view/products', component: ViewProductsComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
-            {path: 'create/product', component: CreateProductsComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
-            {path: 'edit/products/:id', component: EditProductsComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
+            // Gestão (ESTOQUE)
+            { path: 'view/products', component: ViewProductsComponent, canActivate: estoque },
+            { path: 'create/product', component: CreateProductsComponent, canActivate: estoque },
+            { path: 'edit/products/:id', component: EditProductsComponent, canActivate: estoque },
 
-            {path: 'view/containers', component: ViewContainersComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
-            {path: 'create/container', component: CreateContainerComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
-            {path: 'edit/container/:id', component: EditContainerComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
+            { path: 'view/containers', component: ViewContainersComponent, canActivate: estoque },
+            { path: 'create/container', component: CreateContainerComponent, canActivate: estoque },
+            { path: 'edit/container/:id', component: EditContainerComponent, canActivate: estoque },
 
-            {path: 'view/category/:id', component: ViewCategoryComponent, pathMatch: 'full', /*canActivate: [authGuard]*/},
-            {path: 'view/categories', component: ViewCategoriesComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
-            {path: 'create/category', component: CreateCategoryComponent, pathMatch: 'full', /*canActivate:[authGuard]*/ },
-            {path: 'edit/category/:id', component: EditCategoryComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
+            { path: 'view/category/:id', component: ViewCategoryComponent, canActivate: estoque },
+            { path: 'view/categories', component: ViewCategoriesComponent, canActivate: estoque },
+            { path: 'create/category', component: CreateCategoryComponent, canActivate: estoque },
+            { path: 'edit/category/:id', component: EditCategoryComponent, canActivate: estoque },
 
-            {path: 'movements/scan', component: ScannerInputComponent, pathMatch: 'full'},
-            {path:'movements/input', component: MovementInputComponent, pathMatch: 'full'},
-  
-            {path: 'view/units', component: ViewUnitComponent, pathMatch: 'full'},
-            {path: 'edit/unit/:id', component:EditUnitComponent, pathMatch: 'full'},
-            {path: 'view/movements', component: ViewMovementsComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
-            {path: 'movements/scan', component: ScannerInputComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
-            {path: 'movements/input', component: MovementInputComponent, pathMatch: 'full', /*canActivate:[authGuard]*/},
+            { path: 'view/units', component: ViewUnitComponent, canActivate: estoque },
+            { path: 'edit/unit/:id', component: EditUnitComponent, canActivate: estoque },
 
-        
+            // Movimentações (ESTOQUE)
+            { path: 'view/movements', component: ViewMovementsComponent, canActivate: estoque },
+            { path: 'movements/scan', component: ScannerInputComponent, canActivate: estoque },
+            { path: 'movements/input', component: MovementInputComponent, canActivate: estoque },
+        ],
+   },
 
-
-        ], /*//*/
-     },
-    { path:'**', component: The404PageComponent, pathMatch: 'full' }, //A ** redireciona para o Componente da 404!
+   { path: '**', component: The404PageComponent }, // 404
 ];
-

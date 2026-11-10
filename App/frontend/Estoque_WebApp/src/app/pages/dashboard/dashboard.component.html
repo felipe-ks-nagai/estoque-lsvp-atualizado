@@ -45,6 +45,8 @@
     <div class="dashboard-actions">
         <div class="list-container">
             <div class="list-actions">
+                <!-- Atalhos de estoque só para quem tem permissão -->
+                @if (podeEstoque) {
                 <div class="list-item" (click)="navigateTo('manage/movements/scan')">
                     <!--ação de registrar entrada-->
                     <span class="item-icon"><fa-icon id="plus" [icon]="icons.faPlus"></fa-icon></span>
@@ -64,6 +66,7 @@
                     <span class="item-icon"><fa-icon id="lock" [icon]="icons.faLock"></fa-icon></span>
                     <span class="item-text">Ver Unidades</span>
                 </div>
+                }
                 <div class="list-item" (click)="navigateTo('reports')">
                     <!--ação de gerar relatórios-->
                     <span class="item-icon"><fa-icon id="file" [icon]="icons.faFileAlt"></fa-icon></span>
