@@ -222,6 +222,16 @@ também `POSTGRES_PASSWORD` nesse ambiente; para um volume existente, mantenha a
 senha já configurada no banco. Se as imagens forem privadas, execute `docker login`
 antes do `pull`.
 
+### 🔹 Deploy automático na AWS
+
+O workflow de publicação pode atualizar uma EC2 com Amazon Linux via SSH depois
+que as três imagens forem publicadas. Ele usa a tag `sha-<commit>` e aguarda os
+checks de saúde dos containers. Ative com a variável de Actions
+`AWS_DEPLOY_ENABLED=true` após preparar o servidor e cadastrar os secrets SSH.
+
+Veja o [passo a passo de deploy na AWS](App/deploy_aws.md), incluindo instalação
+do Docker Compose, configuração do banco e execução manual da pipeline.
+
 ### 🔹 Pré-requisitos
 
 - Java JDK 17+

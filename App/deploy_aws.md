@@ -1,176 +1,194 @@
-# 🚀 Guia de Deploy AWS (EC2 + Docker)
+# Deploy na AWS: Amazon Linux + Docker Hub + GitHub Actions
 
-## Projeto Integrador – Estoque_LSVP
+A publicação no Docker Hub continua no workflow `dockerhub.yml`. Depois que as
+três imagens forem publicadas pela `main`, ele chama `deploy-aws.yml` quando a
+variável `AWS_DEPLOY_ENABLED` estiver definida como `true`.
 
-Este guia cobre o **passo a passo completo** para configurar o servidor na **AWS (EC2)** e subir a aplicação **Estoque_LSVP** utilizando **Docker**.
+O deploy conecta por SSH, envia somente o Compose e o script para
+`~/estoque-lsvp`, baixa as imagens com a tag do commit e atualiza os serviços.
+Não precisa clonar o projeto, instalar Java/Node ou compilar na EC2.
 
----
+## 1. Preparar a instância
 
-## 1️⃣ Criação e Configuração da Instância (AWS Console)
+Use Amazon Linux 2023 com arquitetura **x86_64**, compatível com as imagens
+`linux/amd64` publicadas. O usuário padrão é `ec2-user`.
 
-### 🔹 1. Lançar Instância
+No Security Group, permita HTTP na porta 80 para quem acessará o sistema e SSH
+na porta 22 a partir do runner de deploy e da sua conexão administrativa. Banco
+e backend usam apenas a rede interna do Docker, sem portas públicas.
 
-1. Acesse o **EC2 Dashboard** na AWS.
-2. Clique em **Launch Instance**.
-3. **Name:** `Estoque_SEUNOME`
-4. **OS Images:** Amazon Linux 2023
-5. **Instance Type:** `t2.micro` (Free Tier)
-6. **Key Pair:** `vockey` (ambiente do laboratório)
+O runner `ubuntu-latest` precisa alcançar o IP/DNS da EC2 por SSH. Seus endereços
+de saída podem variar: se sua rede exige um IP fixo ou a EC2 é privada, use um
+runner com acesso à rede e ajuste `runs-on` no workflow. A pipeline não altera
+o Security Group. Um IP/DNS estável evita atualizar o secret a cada reinício.
 
----
-
-### 🔹 2. Configurar Firewall (Security Group)
-
-Em **Network settings**, marque **Create security group** e adicione as seguintes **Inbound Rules**:
-
-| Tipo       | Porta | Origem    | Descrição              |
-| ---------- | ----- | --------- | ---------------------- |
-| SSH        | 22    | 0.0.0.0/0 | Acesso ao servidor     |
-| Custom TCP | 8080  | 0.0.0.0/0 | Backend Spring Boot    |
-| Custom TCP | 4200  | 0.0.0.0/0 | Angular Dev (opcional) |
-| HTTP       | 80    | 0.0.0.0/0 | Frontend em Produção   |
-
----
-
-### 🔹 3. Configurar IP Fixo (Elastic IP)
-
-Necessário para evitar mudança de IP ao reiniciar a instância.
-
-1. Menu lateral → **Network & Security** → **Elastic IPs**
-2. Clique em **Allocate Elastic IP address** → **Allocate**
-3. Selecione o IP → **Actions** → **Associate Elastic IP address**
-4. Associe à instância criada
-
-> ⚠️ **IMPORTANTE:** Anote o IP (ex: `54.207.x.x`). Ele será usado no Frontend.
-
----
-
-## 2️⃣ Configuração do Servidor (Terminal)
-
-Conecte-se à instância via **EC2 Instance Connect**.
-
----
-
-### 🔹 Passo A – Instalação das Ferramentas
+Conecte à EC2 e execute:
 
 ```bash
-# Atualizar sistema e instalar Git e Docker
-sudo dnf update -y
-sudo dnf install -y git docker
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Adicionar usuário ao grupo docker
+sudo dnf install -y docker
+sudo systemctl enable --now docker
 sudo usermod -aG docker ec2-user
-
-# Instalar Docker Compose (v2.24.0)
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-
-# Verificar instalação
-docker --version
-docker-compose --version
 ```
 
----
-
-### 🔹 Passo B – Configurar Memória Swap (**CRÍTICO**)
-
-A instância `t2.micro` possui apenas **1GB de RAM**.
+Encerre a sessão e conecte novamente para aplicar o grupo. Confira:
 
 ```bash
-sudo dd if=/dev/zero of=/swapfile bs=128M count=16
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-echo '/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
+docker info
 ```
 
-> 💡 **Dica:** Após isso, digite `exit` e conecte novamente ao terminal.
+No Amazon Linux 2, a instalação do Docker usa
+`sudo amazon-linux-extras install docker -y`; os demais passos são iguais.
+Referência: [instalação no Amazon Linux](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-docker.html).
 
----
-
-## 3️⃣ Deploy do Projeto
-
-### 🔹 1. Clonar a Branch `develop`
+Instale o plugin Compose para o mesmo usuário que a pipeline usará:
 
 ```bash
-git clone -b develop https://github.com/KaiqueAMesquita/Estoque_LSVP.git
-cd Estoque_LSVP
+mkdir -p ~/.docker/cli-plugins
+curl -fSL https://github.com/docker/compose/releases/download/v5.6.0/docker-compose-linux-x86_64 \
+  -o ~/.docker/cli-plugins/docker-compose
+chmod +x ~/.docker/cli-plugins/docker-compose
+docker compose version
 ```
 
----
+O deploy usa `docker compose`, com espaço, incluindo `--wait`. Referência:
+[instalação do plugin Compose](https://docs.docker.com/compose/install/linux/).
 
-### 🔹 2. Configurar IP no Frontend (**OBRIGATÓRIO**)
+## 2. Configurar o banco no servidor
 
-#### a) Ambiente de Produção
+Como esta é uma instalação nova, crie uma única vez o volume do PostgreSQL:
 
 ```bash
-nano frontend/Estoque_WebApp/src/environments/environment.prod.ts
+docker volume create estoque-lsvp-postgres
+mkdir -p ~/estoque-lsvp
+chmod 700 ~/estoque-lsvp
+umask 077
+nano ~/estoque-lsvp/.env
 ```
 
-```ts
-export const environment = {
-  production: true,
-  API_URL: "http://SEU_ELASTIC_IP:8080/api",
-  TOKEN_KEY: "Centro_Paula_Souza_Token"
-};
+Use como modelo `App/deploy/aws.env.example`, substituindo a senha:
+
+```dotenv
+COMPOSE_PROJECT_NAME=app
+POSTGRES_DB=estoque_lsvp
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD='SUA_SENHA_DO_BANCO'
+POSTGRES_VOLUME=estoque-lsvp-postgres
+FRONTEND_PORT=80
 ```
 
-Salvar: **Ctrl + O** → **Enter**
-Sair: **Ctrl + X**
-
----
-
-#### b) Ambiente de Desenvolvimento (Prevenção)
+Depois de salvar:
 
 ```bash
-nano frontend/Estoque_WebApp/src/environments/environment.development.ts
+chmod 600 ~/estoque-lsvp/.env
 ```
 
-> Altere o IP da mesma forma.
+O Compose exige um volume externo existente. Nos próximos deploys, mantenha
+esse volume e a senha configurada. O script não executa `down -v`, limpeza de
+volumes ou remoção de imagens. A imagem do banco não contém dados locais.
 
----
+Se futuramente reutilizar um banco existente, configure `POSTGRES_VOLUME` com
+o nome real de seu volume e use as credenciais atuais. Não execute dois
+PostgreSQL sobre o mesmo diretório de dados. O backend mantém
+`hibernate.ddl-auto=update`, como no Compose local; mudanças de schema devem ser
+consideradas no backup e numa eventual reversão.
 
-### 🔹 3. Subir a Aplicação
+## 3. Acesso às imagens do Docker Hub
+
+Se os repositórios forem privados, faça login na EC2 como o mesmo usuário SSH:
 
 ```bash
-sudo docker-compose up -d --build
+docker login --username felipenagai
 ```
 
-⏳ A primeira execução pode demorar alguns minutos.
+Quando solicitar a senha, informe um token Docker Hub com permissão de leitura.
+Esse login é feito uma vez no servidor, sem `sudo`; renove-o quando o token
+expirar. A pipeline usa as credenciais Docker desse usuário. Para imagens
+públicas, o login é opcional.
 
----
+## 4. Cadastrar secrets e variáveis no GitHub
 
-## 4️⃣ Manutenção e Atualizações
+No repositório, abra **Settings → Secrets and variables → Actions → Secrets** e
+cadastre os seguintes repository secrets:
 
-Sempre que houver atualização no GitHub, utilize o procedimento abaixo:
+| Secret | Conteúdo |
+| --- | --- |
+| `AWS_HOST` | IP público ou DNS da EC2, sem `http://`, usuário ou porta |
+| `AWS_SSH_PRIVATE_KEY` | Conteúdo completo da chave privada `.pem` autorizada na EC2, incluindo as linhas BEGIN/END; chave sem passphrase para uso não interativo |
+| `AWS_SSH_KNOWN_HOSTS` | Chave pública SSH do servidor no formato `known_hosts`, conforme abaixo |
+
+Para obter a chave do servidor, use uma sessão administrativa confiável na EC2:
 
 ```bash
-# Atualizar código
-git pull
-
-# Parar containers
-sudo docker-compose down
-
-# Remover imagens antigas (IMPORTANTE para o Angular atualizar)
-sudo docker rmi estoque_lsvp-frontend estoque_lsvp-backend
-
-# Build limpo e novo deploy
-sudo docker-compose build --no-cache
-sudo docker-compose up -d
+sudo cat /etc/ssh/ssh_host_ed25519_key.pub
 ```
 
----
+Monte o valor de `AWS_SSH_KNOWN_HOSTS` usando o mesmo IP/DNS de `AWS_HOST`, seguido
+do tipo e da chave retornados (sem o comentário final):
 
-## 5️⃣ Links de Acesso
+```text
+SEU_IP_OU_DNS ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA...
+```
 
-* 🌐 **Sistema Web:**
-  `http://SEU_ELASTIC_IP`
+Para uma porta SSH diferente de 22, use `[SEU_IP_OU_DNS]:PORTA` no início da linha.
+A pipeline verifica essa chave; se a instância for substituída, atualize o secret
+com a chave do novo servidor.
 
-* 📘 **Swagger (API):**
-  `http://SEU_ELASTIC_IP:8080/swagger-ui/index.html`
+Na aba **Variables**, configure:
 
----
+| Variável | Valor |
+| --- | --- |
+| `AWS_DEPLOY_ENABLED` | `true` para ativar o deploy automático depois da publicação |
+| `AWS_USER` | Opcional; padrão `ec2-user` |
+| `AWS_SSH_PORT` | Opcional; padrão `22` |
 
-✅ **Deploy finalizado com sucesso!**
+O secret `DOCKERHUB_TOKEN` já existente continua sendo usado apenas para publicar
+as imagens no job de build. A senha do PostgreSQL fica no `.env` da EC2 e não é
+enviada pelo workflow.
+
+## 5. Executar a pipeline
+
+Envie estes arquivos para a `main`. Com `AWS_DEPLOY_ENABLED=true`, um push que
+aciona a publicação seguirá o fluxo:
+
+1. Compilar e publicar banco, backend e frontend.
+2. Aguardar sucesso dos três jobs.
+3. Conectar à EC2 e enviar os arquivos de deploy.
+4. Fazer `docker compose pull` das três imagens `sha-<commit completo>`.
+5. Atualizar banco e backend e aguardar os checks de saúde.
+6. Recriar o frontend para o Nginx resolver o endereço atual do backend.
+7. Aguardar o frontend e registrar a tag em `~/estoque-lsvp/.deployed-image-tag`.
+
+Atualizações podem causar uma breve interrupção; não há troca sem downtime ou
+rollback automático. Se o download falhar, a atualização dos containers não
+começa. Se a inicialização falhar, o job falha e o estado deve ser inspecionado.
+
+Para usar uma versão já publicada, abra **Actions → Deploy AWS Amazon Linux →
+Run workflow**, selecione a branch **main** e informe `image_tag`, por exemplo
+`sha-<commit completo>`, `v1.0.0` ou `latest`. Essa execução manual independe de
+`AWS_DEPLOY_ENABLED`. Prefira uma tag de commit para saber exatamente a versão.
+Tags de release não fazem deploy automático; use esta execução manual.
+
+Acesse `http://SEU_IP_OU_DNS`. O frontend já usa `/api` pelo Nginx; não é necessário
+trocar o IP no código Angular.
+
+## 6. Diagnóstico na EC2
+
+Use a tag mostrada na execução do GitHub. O arquivo `.deployed-image-tag` contém
+apenas a última versão concluída com sucesso:
+
+```bash
+cd ~/estoque-lsvp
+export IMAGE_TAG=sha-SUBSTITUA_PELO_COMMIT_COMPLETO
+docker compose --env-file .env -f docker-compose.aws.yml ps
+docker compose --env-file .env -f docker-compose.aws.yml logs --tail=100 backend frontend db
+```
+
+| Falha | Verificação |
+| --- | --- |
+| Timeout SSH | IP/DNS, porta, Security Group e conectividade do runner |
+| Permission denied (publickey) | Usuário SSH, chave privada e chave autorizada na EC2 |
+| Host key verification failed | Secret `AWS_SSH_KNOWN_HOSTS` e chave real do servidor |
+| Acesso ao Docker negado | Grupo `docker` e nova sessão do usuário SSH |
+| Pull negado ou tag inexistente | Login Docker na EC2 e tag publicada nos três repositórios |
+| Volume externo não encontrado | Nome exato em `POSTGRES_VOLUME` |
+| Backend unhealthy | Logs, conexão ao banco e recursos disponíveis na EC2 |

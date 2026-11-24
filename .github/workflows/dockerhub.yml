@@ -7,11 +7,13 @@ on:
     paths:
       - 'App/**'
       - '.github/workflows/dockerhub.yml'
+      - '.github/workflows/deploy-aws.yml'
   pull_request:
     branches: [main]
     paths:
       - 'App/**'
       - '.github/workflows/dockerhub.yml'
+      - '.github/workflows/deploy-aws.yml'
   workflow_dispatch:
 
 permissions:
@@ -80,3 +82,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  deploy-aws:
+    name: Atualizar EC2
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AWS_DEPLOY_ENABLED == 'true'
+    uses: ./.github/workflows/deploy-aws.yml
+    with:
+      image_tag: sha-${{ github.sha }}
+    secrets: inherit

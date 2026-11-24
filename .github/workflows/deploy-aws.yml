@@ -1,0 +1,71 @@
+name: Deploy AWS Amazon Linux
+
+on:
+  workflow_call:
+    inputs:
+      image_tag:
+        description: Tag publicada nas tres imagens
+        required: true
+        type: string
+    secrets:
+      AWS_HOST:
+        required: true
+      AWS_SSH_PRIVATE_KEY:
+        required: true
+      AWS_SSH_KNOWN_HOSTS:
+        required: true
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Tag ja publicada (sha-<commit completo>, v1.0.0 ou latest)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: estoque-lsvp-aws-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Baixar arquivos de deploy
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Enviar Compose e atualizar servicos via SSH
+        shell: bash
+        env:
+          AWS_HOST: ${{ secrets.AWS_HOST }}
+          AWS_SSH_PRIVATE_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
+          AWS_SSH_KNOWN_HOSTS: ${{ secrets.AWS_SSH_KNOWN_HOSTS }}
+          AWS_USER: ${{ vars.AWS_USER || 'ec2-user' }}
+          AWS_SSH_PORT: ${{ vars.AWS_SSH_PORT || '22' }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          set -euo pipefail
+          [[ "$AWS_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]] || { echo 'AWS_HOST deve conter somente o IPv4 ou DNS da EC2.'; exit 1; }
+          [[ "$AWS_USER" =~ ^[a-z_][a-z0-9_-]*$ ]] || { echo 'AWS_USER invalido.'; exit 1; }
+          [[ "$AWS_SSH_PORT" =~ ^[0-9]{1,5}$ ]] || { echo 'AWS_SSH_PORT invalida.'; exit 1; }
+          [[ "$IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]] || { echo 'Tag de imagem invalida.'; exit 1; }
+          [[ -n "$AWS_SSH_PRIVATE_KEY" && -n "$AWS_SSH_KNOWN_HOSTS" ]] || { echo 'Configure os secrets SSH.'; exit 1; }
+
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          printf '%s\n' "$AWS_SSH_PRIVATE_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$AWS_SSH_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          chmod 600 "$ssh_dir/key" "$ssh_dir/known_hosts"
+          ssh_options=(-i "$ssh_dir/key" -p "$AWS_SSH_PORT" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$ssh_dir/known_hosts" -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
+          target="$AWS_USER@$AWS_HOST"
+
+          tar -C App -czf - docker-compose.aws.yml deploy/deploy.sh |
+            ssh "${ssh_options[@]}" "$target" 'umask 077; mkdir -p "$HOME/estoque-lsvp" && tar -xzf - -C "$HOME/estoque-lsvp"'
+          # A tag validada acima deve ser expandida pelo runner antes do SSH.
+          # shellcheck disable=SC2029
+          ssh "${ssh_options[@]}" "$target" "bash ~/estoque-lsvp/deploy/deploy.sh '$IMAGE_TAG'"
